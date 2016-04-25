@@ -434,10 +434,10 @@ if ( !$dryrun ) {
     # First, work-around (https://trac.ffmpeg.org/ticket/3339) by converting to an mp4 first...
     my $ffmpeg_workaround_string = "ffmpeg -y -i \"$filename\" -vcodec copy -acodec copy $temp_dir/temp_$now.mp4";
     print "Calling ffmpeg to workaround an issue, and repackaging video file into an mp4 container.\n" if ( $debug >= 1 );
-    print "ffmpeg call: $ffmpeg_string\n" if ( $debug > 1 );
+    print "ffmpeg call: $ffmpeg_workaround_string\n" if ( $debug > 1 );
     system $ffmpeg_string;
     if ( $? == -1 ) {
-        print "($outfile): ERROR. Failed to execute ffmpeg system call -> $ffmpeg_string\n";
+        print "($outfile): ERROR. Failed to execute ffmpeg system call -> $ffmpeg_workaround_string\n";
         cleanup_temp();
         exit 1;
     } elsif ( $? & 127 ) {
