@@ -340,6 +340,7 @@ if ( !$user_cutlist ) {
     }
     $ctr++;
     print "marks[0]: $marks[0]\n" if ( $debug > 1 );
+    print "ctr: $ctr\n" if ( $debug > 1 );
     # We need to make sure that the first cut point is a cut-start, not a cut-end
     if ( $marks[0] == 0 or $types[0] == 0 or $types[0] == 5 ) {
         $vidstart = 2;
@@ -430,12 +431,12 @@ if ( $cutlist_sub_str eq "" ) {
 
 if ( !$dryrun ) {
     updateStatus($dbh,$jobid,4,"($outfile): Starting ffmpeg conversion.");
-    
+
     # First, work-around (https://trac.ffmpeg.org/ticket/3339) by converting to an mp4 first...
     my $ffmpeg_workaround_string = "ffmpeg -y -i \"$filename\" -vcodec copy -acodec copy $temp_dir/temp_$now.mp4";
     print "Calling ffmpeg to workaround an issue, and repackaging video file into an mp4 container.\n" if ( $debug >= 1 );
     print "ffmpeg call: $ffmpeg_workaround_string\n" if ( $debug > 1 );
-    system $ffmpeg_string;
+    system $ffmpeg_workaround_string;
     if ( $? == -1 ) {
         print "($outfile): ERROR. Failed to execute ffmpeg system call -> $ffmpeg_workaround_string\n";
         cleanup_temp();
@@ -457,7 +458,8 @@ if ( !$dryrun ) {
     }
 
     # Next, we need to run the MPEG-TS file through ffmpeg to mux it into a Matroska container
-    my $ffmpeg_string = "ffmpeg -y -i \"$filename\" -vcodec copy -acodec copy -f matroska $temp_dir/temp_$now.mkv";
+
+    my $ffmpeg_string = "ffmpeg -y -i $temp_dir/temp_$now.mp4 -vcodec copy -acodec copy -f matroska $temp_dir/temp_$now.mkv";
     print "Calling ffmpeg to repackage video file into Matroska (mkv) container.\n" if ( $debug >= 1 );
     print "ffmpeg call: $ffmpeg_string\n" if ( $debug > 1 );
     system $ffmpeg_string;
@@ -510,6 +512,7 @@ if ( !$dryrun ) {
     }
 
     # build the merge string
+    print "vidstart: $vidstart\n" if ( $debug >= 1);
     if ( $vidstart == 1 ) {
         $merge_string = "$temp_dir/split_$now-001.mkv";
     } else {
@@ -517,7 +520,13 @@ if ( !$dryrun ) {
     }
     for ( my $n=$vidstart+2; $n<=$ctr; $n+=2 ) {
         print "n: $n\n" if ( $debug > 1 );
-        $merge_string = $merge_string . " +$temp_dir/split_$now-" . sprintf("%03d",$n) . ".mkv";
+        $file = "$temp_dir/split_$now-" . sprintf("%03d",$n) . ".mkv";
+        if ( -f $file ) {
+            print "file $file exists\n" if ( $debug >= 1 );
+            $merge_string = $merge_string . " +" . $file;
+        } else {
+            print "file $file does NOT exist\n" if ( $debug >= 1 );
+        }
     }
     print "Calling mkvmerge to re-join the cut video files.\n" if ( $debug >= 1 );
     print "mkvmerge merge string: $merge_string\n" if ( $debug > 1 );
