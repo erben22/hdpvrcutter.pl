@@ -430,7 +430,33 @@ if ( $cutlist_sub_str eq "" ) {
 
 if ( !$dryrun ) {
     updateStatus($dbh,$jobid,4,"($outfile): Starting ffmpeg conversion.");
-    # First we need to run the MPEG-TS file through ffmpeg to mux it into a Matroska container
+    
+    # First, work-around (https://trac.ffmpeg.org/ticket/3339) by converting to an mp4 first...
+    my $ffmpeg_workaround_string = "ffmpeg -y -i \"$filename\" -vcodec copy -acodec copy $temp_dir/temp_$now.mp4";
+    print "Calling ffmpeg to workaround an issue, and repackaging video file into an mp4 container.\n" if ( $debug >= 1 );
+    print "ffmpeg call: $ffmpeg_string\n" if ( $debug > 1 );
+    system $ffmpeg_string;
+    if ( $? == -1 ) {
+        print "($outfile): ERROR. Failed to execute ffmpeg system call -> $ffmpeg_string\n";
+        cleanup_temp();
+        exit 1;
+    } elsif ( $? & 127 ) {
+        printf "($outfile): ERROR. Child (ffmpeg) process died with signal %d, %s coredump\n", ($? & 127), ($? & 128) ? 'with' : 'without';
+        cleanup_temp();
+        exit 1;
+    } else {
+        $ffmpeg_exit_code = $? >> 8;
+        if ( $ffmpeg_exit_code != 0 ) {
+            # There was an error.  Update the jobqueue table appropriately and exit.
+            updateStatus($dbh,$jobid,304,"($outfile): ffmpeg child process exited with error code $ffmpeg_exit_code.");
+            exit 1;
+        } else {
+            # ffmpeg call exited normally - update jobqueue comment to indicate runtime status
+            updateStatus($dbh,$jobid,4,"($outfile): ffmpeg conversion step completed, beginning mkvmerge split.");
+        }
+    }
+
+    # Next, we need to run the MPEG-TS file through ffmpeg to mux it into a Matroska container
     my $ffmpeg_string = "ffmpeg -y -i \"$filename\" -vcodec copy -acodec copy -f matroska $temp_dir/temp_$now.mkv";
     print "Calling ffmpeg to repackage video file into Matroska (mkv) container.\n" if ( $debug >= 1 );
     print "ffmpeg call: $ffmpeg_string\n" if ( $debug > 1 );
