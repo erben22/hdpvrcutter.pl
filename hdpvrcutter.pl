@@ -109,6 +109,7 @@ print "Must supply the full the path the to output destination directory [--dest
 print "No subtitle.  I will assume we are exporting a movie? [--subtitle=SUBTITLE]\n" if ( $title && !$subtitle );
 print "You must specify either title OR basename, but not both.\n" if ( $user_filename && $title );
 print "To supply your own cutlist, you must also supply --basename and --outfile\n" if ( $user_cutlist && !($user_filename && $user_outfile) );
+print "Supplied user_outfile is $user_outfile\n" if ( $user_outfile )
 
 # Conditional exits - these suck, but seem to work
 # Exit if not all of the required parameters are supplied
@@ -408,11 +409,12 @@ if ( !$user_outfile ) {
         print "Skipping thetvdb.com lookup...\n";
         $outfile = "$output_file_progname";
     }
-    # Display the output filename
-    print "The output file name is: \"$outfile.mkv\"\n";
 } else {
     $outfile = $user_outfile;
 }
+
+# Display the output filename
+print "The output file name is: \"$outfile.mkv\"\n";
 
 
 #####
