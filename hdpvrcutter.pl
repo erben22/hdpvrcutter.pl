@@ -185,6 +185,7 @@ print "\n\n########## Start export output ##########\n\n";
 
 # Stupid variable reassignment...too lazy to fix properly right now
 $progname = $title;
+$output_file_progname = $title;
 
 if ( !$user_cutlist ) {
 # Let's use perl's DBI module to access the database
@@ -258,6 +259,7 @@ $THETVDB = "www.thetvdb.com";
 $global_user_agent = LWP::UserAgent->new;
 print "Program Name: $progname\n";
 print "Subtitle: $subtitle\n";
+
 $progname =~ s/\'/\\'/g;        # SQL doesn't like apostrophes
 $subtitle =~ s/\'/\\'/g;
 
@@ -393,17 +395,18 @@ if ( !$user_outfile ) {
         $S = $T[0];             # series title
         $E = $T[1];             # episode title
         if ( length($S) == 0 or length($E) == 0 ) {
-            print "Empty season or episode number returned from thetvdb.com.  Exiting...\n";
-            exit 1;
+            print "Empty season or episode number returned from thetvdb.com.\n";
+            $S = 0;
+            $E = 0;
         }
         # Print some useful information
         print "\tSeason Number: $S\n";
         print "\tEpisode Number: $E\n";
         # Generate the output filename
-        $outfile = "$progname.S${S}E${E}";
+        $outfile = "$output_file_progname.S${S}E${E}";
     } else {
         print "Skipping thetvdb.com lookup...\n";
-        $outfile = "$progname";
+        $outfile = "$output_file_progname";
     }
     # Display the output filename
     print "The output file name is: \"$outfile.mkv\"\n";
